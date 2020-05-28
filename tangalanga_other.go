@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"os"
 	"strconv"
 	"strings"
 
@@ -61,7 +62,8 @@ func (t *Tangalanga) FindMeeting(id int) (*pb.Meeting, error) {
 		info := m.GetInformation()
 
 		if m.GetError() == 124 {
-			log.Panic(info)
+			fmt.Println(color.Red("Token Expired"))
+			os.Exit(1)
 		}
 
 		// Not found

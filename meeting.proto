@@ -1,0 +1,57 @@
+syntax = "proto3";
+
+message Meeting {
+  message PhoneNumber {
+    string country_code = 1;
+    string country_name = 2;
+    string country_prefix = 3;
+
+    string number = 4;
+    string easy_number = 5;
+  }
+
+  message Phones {
+    repeated PhoneNumber info = 1;
+  }
+
+  message Unknown {
+    string xmpp = 1;
+    string gw1 = 2;
+    string gw2 = 3;
+    string file = 4;
+    string log = 8;
+  }
+
+  message Trace {
+    string ip = 1;
+  }
+
+  message Room {
+    string user = 3;
+    string room_name = 4;
+    string connections = 10;
+    string tunnels = 67;
+
+    string handshake = 11; // ?
+
+    uint32 room_id = 12;
+    string phone_numbers = 17;
+    string join_info = 25;
+
+    string gmail_link = 23;
+    string yahoo_link = 24;
+
+    string link = 28;
+    string link_with_token = 44;
+
+    string call_to_action = 46;
+
+    Phones phones = 56;
+  }
+
+  bool missing = 1;
+  string information = 2;
+  Room room = 3;
+  Trace current = 38;
+  repeated Unknown hosts = 27;
+}

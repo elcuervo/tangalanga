@@ -19,7 +19,6 @@ import (
 	pb "github.com/elcuervo/tangalanga/proto"
 	"github.com/golang/protobuf/proto"
 
-	"github.com/briandowns/spinner"
 	"github.com/cretz/bine/tor"
 	"github.com/ipsn/go-libtor"
 	log "github.com/sirupsen/logrus"
@@ -45,6 +44,7 @@ var colorFlag = flag.Bool("colors", true, "enable or disable colors")
 var token = flag.String("token", "", "zpk token to use")
 var debug = flag.Bool("debug", false, "show error messages")
 var output = flag.String("output", "", "output file for successful finds")
+var useTor = flag.Bool("tor", false, "connect via tor")
 
 var color aurora.Aurora
 var tangalanga *Tangalanga
@@ -70,8 +70,6 @@ func init() {
 			log.SetOutput(file)
 		}
 	}
-
-	fmt.Printf("finding disclosed room ids... %s\n", color.Yellow("please wait"))
 }
 
 func debugReq(req *http.Request) {
@@ -92,6 +90,7 @@ func randomMeetingId() int {
 
 type Tangalanga struct {
 	client       *http.Client
+	tor          *tor.Tor
 	ErrorCounter int
 }
 
@@ -136,21 +135,64 @@ func (t *Tangalanga) FindMeeting(id int) (*pb.Meeting, error) {
 	return m, nil
 }
 
+func (t *Tangalanga) torDialer() (*tor.Dialer, error) {
+	tor, err := tor.Start(nil, &tor.StartConf{ProcessCreator: libtor.Creator})
+
+	if err != nil {
+		fmt.Errorf("Unable to start Tor: %v", err)
+	}
+
+	t.tor = tor
+
+	dialCtx, _ := context.WithTimeout(context.Background(), 3*time.Minute)
+
+	return tor.Dialer(dialCtx, nil)
+}
+
+func (t *Tangalanga) Close() {
+	defer t.tor.Close()
+}
+
 func (t *Tangalanga) NewHTTPClient() {
 	t.client = &http.Client{}
+}
+
+func (t *Tangalanga) NewHTTPTORClient() {
+	fmt.Printf("connecting to the TOR network... %s\n", color.Yellow("please wait"))
+	dialer, err := t.torDialer()
+
+	if err != nil {
+		fmt.Errorf("Unable to start Tor: %v", err)
+	}
+
+	fmt.Printf("connection via TOR %s\n", color.Green("successful!"))
+	t.client = &http.Client{Transport: &http.Transport{DialContext: dialer.DialContext}}
 }
 
 func NewTangalanga() *Tangalanga {
 	t := new(Tangalanga)
 	t.ErrorCounter = 0
 
-	t.NewHTTPClient()
+	if *useTor {
+		t.NewHTTPTORClient()
+	} else {
+		t.NewHTTPClient()
+	}
+
 	return t
 }
 
 func main() {
 	tangalanga = NewTangalanga()
+	c := make(chan os.Signal, 2)
 
+	go func() {
+		<-c
+		tangalanga.Close()
+		os.Exit(0)
+	}()
+
+	fmt.Printf("finding disclosed room ids... %s\n", color.Yellow("please wait"))
 	for i := 0; ; i++ {
 		if i%200 == 0 && i > 0 {
 			fmt.Printf("%d ids processed\n", color.Red(i)) // Just to show something if no debug
@@ -164,8 +206,8 @@ func main() {
 			fmt.Printf("%s\n", err)
 		}
 
-		if tangalanga.ErrorCounter >= 30 {
-			log.Panic("Too many errors, change ip")
+		if tangalanga.ErrorCounter >= 100 {
+			fmt.Println(color.Red("Too many errors, change ip"))
 		}
 
 		if err == nil {
@@ -193,41 +235,4 @@ func main() {
 		}
 
 	}
-}
-
-func main2() {
-	s := spinner.New(spinner.CharSets[4], 100*time.Millisecond)
-	c := make(chan os.Signal, 2)
-
-	s.Suffix = " Connecting to the TOR network."
-	s.Start()
-
-	go func() {
-		<-c
-		os.Exit(0)
-	}()
-
-	t, err := tor.Start(nil, &tor.StartConf{ProcessCreator: libtor.Creator})
-
-	if err != nil {
-		fmt.Errorf("Unable to start Tor: %v", err)
-	}
-
-	defer t.Close()
-
-	dialCtx, dialCancel := context.WithTimeout(context.Background(), 3*time.Minute)
-
-	dialer, err := t.Dialer(dialCtx, nil)
-
-	httpClient := &http.Client{Transport: &http.Transport{DialContext: dialer.DialContext}}
-
-	tangalanga := &Tangalanga{
-		client: httpClient,
-	}
-
-	tangalanga.FindMeeting(1)
-
-	defer dialCancel()
-
-	s.Stop()
 }

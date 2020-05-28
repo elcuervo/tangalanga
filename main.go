@@ -86,25 +86,24 @@ func (t *Tangalanga) FindMeeting(id int) (*pb.Meeting, error) {
 }
 
 func main() {
-	id := randomMeetingId()
-
 	client := &http.Client{}
 
 	tangalanga := &Tangalanga{
 		client: client,
 	}
 
-	m, err := tangalanga.FindMeeting(id)
+	for i := 0; i < 100; i++ {
+		id := randomMeetingId()
 
-	if err != nil {
-		log.Panic(err)
+		m, err := tangalanga.FindMeeting(id)
+
+		if err != nil {
+			log.Println(err)
+		} else {
+			room := m.GetRoom()
+			log.Printf("Found ID: %s Hello: %s", room.GetRoomId(), room.GetRoomName())
+		}
 	}
-
-	ip := m.GetCurrent().GetIp()
-	name := m.GetRoom().GetRoomName()
-
-	log.Printf("Zoom sees you as %s\n", ip)
-	log.Println(name)
 }
 
 func main2() {

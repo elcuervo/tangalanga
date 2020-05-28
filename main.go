@@ -143,9 +143,7 @@ func main() {
 		ErrorCounter: 0,
 	}
 
-	n := 1000
-
-	for i := 0; i < n; i++ {
+	for i := 0; ; i++ {
 		if i%200 == 0 && i > 0 {
 			fmt.Printf("%d ids processed\n", color.Red(i)) // Just to show something if no debug
 		}

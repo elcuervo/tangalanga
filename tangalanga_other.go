@@ -1,73 +1,37 @@
-// +build linux
+// +build !linux
 
 package main
 
 import (
-	"context"
 	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
-	"time"
 
-	"github.com/cretz/bine/tor"
 	pb "github.com/elcuervo/tangalanga/proto"
 	"github.com/golang/protobuf/proto"
-	"github.com/ipsn/go-libtor"
 	log "github.com/sirupsen/logrus"
 )
 
 type Tangalanga struct {
 	client       *http.Client
-	tor          *tor.Tor
 	ErrorCounter int
 }
 
-func (t *Tangalanga) torDialer() (*tor.Dialer, error) {
-	tor, err := tor.Start(nil, &tor.StartConf{ProcessCreator: libtor.Creator})
-
-	if err != nil {
-		fmt.Errorf("Unable to start Tor: %v", err)
-	}
-
-	t.tor = tor
-
-	dialCtx, _ := context.WithTimeout(context.Background(), 3*time.Minute)
-
-	return tor.Dialer(dialCtx, nil)
-}
-
 func (t *Tangalanga) Close() {
-	defer t.tor.Close()
 }
 
 func (t *Tangalanga) NewHTTPClient() {
 	t.client = &http.Client{}
 }
 
-func (t *Tangalanga) NewHTTPTORClient() {
-	fmt.Printf("connecting to the TOR network... %s\n", color.Yellow("please wait"))
-	dialer, err := t.torDialer()
-
-	if err != nil {
-		fmt.Errorf("Unable to start Tor: %v", err)
-	}
-
-	fmt.Printf("connection via TOR %s\n", color.Green("successful!"))
-	t.client = &http.Client{Transport: &http.Transport{DialContext: dialer.DialContext}}
-}
-
 func NewTangalanga() *Tangalanga {
 	t := new(Tangalanga)
 	t.ErrorCounter = 0
 
-	if *useTor {
-		t.NewHTTPTORClient()
-	} else {
-		t.NewHTTPClient()
-	}
+	t.NewHTTPClient()
 
 	return t
 }

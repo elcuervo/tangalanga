@@ -26,12 +26,17 @@ import (
 )
 
 const logo = `
+
+		     zoom scanner
+
 ▄▄▄▄▄ ▄▄▄·  ▐ ▄  ▄▄ •  ▄▄▄· ▄▄▌   ▄▄▄·  ▐ ▄  ▄▄ •  ▄▄▄·
 •██  ▐█ ▀█ •█▌▐█▐█ ▀ ▪▐█ ▀█ ██•  ▐█ ▀█ •█▌▐█▐█ ▀ ▪▐█ ▀█
  ▐█.▪▄█▀▀█ ▐█▐▐▌▄█ ▀█▄▄█▀▀█ ██▪  ▄█▀▀█ ▐█▐▐▌▄█ ▀█▄▄█▀▀█
  ▐█▌·▐█ ▪▐▌██▐█▌▐█▄▪▐█▐█ ▪▐▌▐█▌▐▌▐█ ▪▐▌██▐█▌▐█▄▪▐█▐█ ▪▐▌
  ▀▀▀  ▀  ▀ ▀▀ █▪·▀▀▀▀  ▀  ▀ .▀▀▀  ▀  ▀ ▀▀ █▪·▀▀▀▀  ▀  ▀
+
 		made with 💀 by @cuerbot
+
 `
 
 const zoomUrl = "https://www3.zoom.us/conf/j"
@@ -52,17 +57,20 @@ func init() {
 		log.Panic("Missing token")
 	}
 
+	fmt.Println(color.Green(logo))
+
 	if *output != "" {
 		file, err := os.OpenFile(*output, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
 
 		if err != nil {
 			log.SetOutput(os.Stdout)
 		} else {
+			fmt.Printf("output is %s\n", color.Yellow(*output))
 			log.SetOutput(file)
 		}
 	}
 
-	fmt.Println(color.Green(logo))
+	fmt.Printf("finding disclosed room ids... %s", color.Yellow("please wait"))
 }
 
 func debugReq(req *http.Request) {
@@ -135,7 +143,13 @@ func main() {
 		ErrorCounter: 0,
 	}
 
-	for i := 0; i < 1000; i++ {
+	n := 1000
+
+	for i := 0; i < n; i++ {
+		if i%200 == 0 && i > 0 {
+			fmt.Printf("%d ids processed\n", color.Red(i)) // Just to show something if no debug
+		}
+
 		id := randomMeetingId()
 
 		m, err := tangalanga.FindMeeting(id)

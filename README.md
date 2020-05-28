@@ -1,6 +1,12 @@
 # Tangalanga
 
-Zoom Conference scanner
+Zoom Conference scanner.
+
+This scanner will check for a random meeting id and return information if available.
+
+![](http://share.elcuervo.net/tangalanga-find-02.png)
+
+## Usage
 
 This are all the possible flags:
 
@@ -11,8 +17,6 @@ tangalanga \
     -debug=true \ # Show not founds too
     -tor=true # Enable tor connection
 ```
-
-![](http://share.elcuervo.net/tangalanga-find-02.png)
 
 ## TOR
 

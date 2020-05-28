@@ -1,3 +1,5 @@
+// +build linux
+
 package main
 
 import (
@@ -54,11 +56,11 @@ func init() {
 	color = aurora.NewAurora(*colorFlag)
 	flag.Parse()
 
+	fmt.Println(color.Green(logo))
+
 	if *token == "" {
 		log.Panic("Missing token")
 	}
-
-	fmt.Println(color.Green(logo))
 
 	if *output != "" {
 		file, err := os.OpenFile(*output, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)

@@ -47,6 +47,7 @@ var debug = flag.Bool("debug", false, "show error messages")
 var output = flag.String("output", "", "output file for successful finds")
 
 var color aurora.Aurora
+var tangalanga *Tangalanga
 
 func init() {
 	rand.Seed(time.Now().UnixNano())
@@ -70,7 +71,7 @@ func init() {
 		}
 	}
 
-	fmt.Printf("finding disclosed room ids... %s", color.Yellow("please wait"))
+	fmt.Printf("finding disclosed room ids... %s\n", color.Yellow("please wait"))
 }
 
 func debugReq(req *http.Request) {
@@ -135,13 +136,20 @@ func (t *Tangalanga) FindMeeting(id int) (*pb.Meeting, error) {
 	return m, nil
 }
 
-func main() {
-	client := &http.Client{}
+func (t *Tangalanga) NewHTTPClient() {
+	t.client = &http.Client{}
+}
 
-	tangalanga := &Tangalanga{
-		client:       client,
-		ErrorCounter: 0,
-	}
+func NewTangalanga() *Tangalanga {
+	t := new(Tangalanga)
+	t.ErrorCounter = 0
+
+	t.NewHTTPClient()
+	return t
+}
+
+func main() {
+	tangalanga = NewTangalanga()
 
 	for i := 0; ; i++ {
 		if i%200 == 0 && i > 0 {

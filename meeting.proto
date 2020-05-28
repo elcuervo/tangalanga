@@ -34,7 +34,7 @@ message Meeting {
 
     string handshake = 11; // ?
 
-    uint32 room_id = 12;
+    uint64 room_id = 12;
     string phone_numbers = 17;
     string join_info = 25;
 

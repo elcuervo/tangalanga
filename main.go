@@ -31,12 +31,15 @@ const logo = `
  ▐█.▪▄█▀▀█ ▐█▐▐▌▄█ ▀█▄▄█▀▀█ ██▪  ▄█▀▀█ ▐█▐▐▌▄█ ▀█▄▄█▀▀█
  ▐█▌·▐█ ▪▐▌██▐█▌▐█▄▪▐█▐█ ▪▐▌▐█▌▐▌▐█ ▪▐▌██▐█▌▐█▄▪▐█▐█ ▪▐▌
  ▀▀▀  ▀  ▀ ▀▀ █▪·▀▀▀▀  ▀  ▀ .▀▀▀  ▀  ▀ ▀▀ █▪·▀▀▀▀  ▀  ▀
+		made with 💀 by @cuerbot
 `
 
 const zoomUrl = "https://www3.zoom.us/conf/j"
 
 var colorFlag = flag.Bool("colors", true, "enable or disable colors")
 var token = flag.String("token", "", "zpk token to use")
+var debug = flag.Bool("debug", false, "show error messages")
+
 var color aurora.Aurora
 
 func init() {
@@ -48,7 +51,7 @@ func init() {
 		log.Panic("Missing token")
 	}
 
-	log.Println(color.Green(logo))
+	fmt.Println(color.Green(logo))
 }
 
 func debugReq(req *http.Request) {
@@ -61,7 +64,6 @@ func debugReq(req *http.Request) {
 }
 
 func randomMeetingId() int {
-	//     88392789130
 	min := 80000000000
 	max := 99999999999
 
@@ -69,11 +71,13 @@ func randomMeetingId() int {
 }
 
 type Tangalanga struct {
-	client *http.Client
+	client       *http.Client
+	ErrorCounter int
 }
 
 func (t *Tangalanga) FindMeeting(id int) (*pb.Meeting, error) {
-	p := url.Values{"cv": {"5.0.25694.0524"}, "mn": {strconv.Itoa(id)}, "uname": {"tangalanga"}}
+	meetId := strconv.Itoa(id)
+	p := url.Values{"cv": {"5.0.25694.0524"}, "mn": {meetId}, "uname": {"tangalanga"}}
 
 	req, _ := http.NewRequest("POST", zoomUrl, strings.NewReader(p.Encode()))
 	cookie := fmt.Sprintf("zpk=%s", *token)
@@ -99,7 +103,14 @@ func (t *Tangalanga) FindMeeting(id int) (*pb.Meeting, error) {
 			log.Panic(info)
 		}
 
-		return nil, fmt.Errorf("Error: %s", color.Red(info))
+		// Not found
+		if info == "Meeting not existed." {
+			t.ErrorCounter++
+		} else {
+			t.ErrorCounter = 0
+		}
+
+		return nil, fmt.Errorf("%s", color.Red(info))
 	}
 
 	return m, nil
@@ -109,20 +120,41 @@ func main() {
 	client := &http.Client{}
 
 	tangalanga := &Tangalanga{
-		client: client,
+		client:       client,
+		ErrorCounter: 0,
 	}
 
-	for i := 0; i < 200; i++ {
+	for i := 0; i < 1000; i++ {
 		id := randomMeetingId()
 
 		m, err := tangalanga.FindMeeting(id)
 
-		if err != nil {
-			log.Println(err)
-		} else {
-			room := m.GetRoom()
-			log.Printf("Found ID: %d Hello: %s", color.Green(room.GetRoomId()), color.Green(room.GetRoomName()))
+		if err != nil && *debug {
+			fmt.Printf("%s\n", err)
 		}
+
+		if tangalanga.ErrorCounter >= 30 {
+			log.Panic("Too many errors, change ip")
+		}
+
+		if err == nil {
+			room := m.GetRoom()
+
+			msg := "Meeting ID: %d.\n" +
+				"Room: %s.\n" +
+				"Owner: %s.\n" +
+				"Link: %s\n"
+
+			entry := fmt.Sprintf(msg,
+				color.Green(room.GetRoomId()),
+				color.Green(room.GetRoomName()),
+				color.Green(room.GetUser()),
+				color.Yellow(room.GetLink()),
+			)
+
+			fmt.Print(entry)
+		}
+
 	}
 }
 

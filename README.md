@@ -32,3 +32,8 @@ there instead of exposing your own ip.
 ![](http://share.elcuervo.net/tangalanga-find-tor-01.png)
 
 For any other system I recommend a VPN
+
+## Why the bizarre name?
+
+This makes reference to a famous 80s/90s personality in the Rio de la Plata. [Doctor Tangalanga](https://en.wikipedia.org/wiki/Dr._Tangalanga)
+who loved to do phone pranks.

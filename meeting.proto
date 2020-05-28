@@ -49,8 +49,9 @@ message Meeting {
     Phones phones = 56;
   }
 
-  bool missing = 1;
+  uint32 error = 1;
   string information = 2;
+
   Room room = 3;
   Trace current = 38;
   repeated Unknown hosts = 27;

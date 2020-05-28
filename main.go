@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"flag"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -13,6 +14,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/logrusorgru/aurora"
 
 	pb "github.com/elcuervo/tangalanga/proto"
 	"github.com/golang/protobuf/proto"
@@ -31,11 +34,21 @@ const logo = `
 `
 
 const zoomUrl = "https://www3.zoom.us/conf/j"
-const token = "zpk=lLAcbIV3Irl4YDEFWUtWejg3pFcIuRjWSQjITMXFKIk%3D.BwcAAAFyVi2fUAAAqMAkQTU5NDQxMzMtQTNDNi00RjEwLTk5NUUtOEE1QkYyMzgyMzE3AAAIZWxjdWVydm9mAAAAAAD%2FAAAA;"
+
+var colorFlag = flag.Bool("colors", true, "enable or disable colors")
+var token = flag.String("token", "", "zpk token to use")
+var color aurora.Aurora
 
 func init() {
 	rand.Seed(time.Now().UnixNano())
-	log.Println(logo)
+	color = aurora.NewAurora(*colorFlag)
+	flag.Parse()
+
+	if *token == "" {
+		log.Panic("Missing token")
+	}
+
+	log.Println(color.Green(logo))
 }
 
 func debugReq(req *http.Request) {
@@ -63,8 +76,9 @@ func (t *Tangalanga) FindMeeting(id int) (*pb.Meeting, error) {
 	p := url.Values{"cv": {"5.0.25694.0524"}, "mn": {strconv.Itoa(id)}, "uname": {"tangalanga"}}
 
 	req, _ := http.NewRequest("POST", zoomUrl, strings.NewReader(p.Encode()))
+	cookie := fmt.Sprintf("zpk=%s", *token)
 
-	req.Header.Add("Cookie", token)
+	req.Header.Add("Cookie", cookie)
 	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 
 	resp, _ := t.client.Do(req)
@@ -76,10 +90,16 @@ func (t *Tangalanga) FindMeeting(id int) (*pb.Meeting, error) {
 		log.Panic("err: ", err)
 	}
 
-	missing := m.GetMissing()
+	missing := m.GetError() != 0
 
 	if missing {
-		return nil, fmt.Errorf(m.GetInformation())
+		info := m.GetInformation()
+
+		if m.GetError() == 124 {
+			log.Panic(info)
+		}
+
+		return nil, fmt.Errorf("Error: %s", color.Red(info))
 	}
 
 	return m, nil
@@ -92,7 +112,7 @@ func main() {
 		client: client,
 	}
 
-	for i := 0; i < 100; i++ {
+	for i := 0; i < 200; i++ {
 		id := randomMeetingId()
 
 		m, err := tangalanga.FindMeeting(id)
@@ -101,7 +121,7 @@ func main() {
 			log.Println(err)
 		} else {
 			room := m.GetRoom()
-			log.Printf("Found ID: %s Hello: %s", room.GetRoomId(), room.GetRoomName())
+			log.Printf("Found ID: %d Hello: %s", color.Green(room.GetRoomId()), color.Green(room.GetRoomName()))
 		}
 	}
 }

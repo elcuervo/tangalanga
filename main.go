@@ -5,7 +5,6 @@ import (
 	"flag"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"math/rand"
 	"net/http"
 	"net/http/httputil"
@@ -23,6 +22,7 @@ import (
 	"github.com/briandowns/spinner"
 	"github.com/cretz/bine/tor"
 	"github.com/ipsn/go-libtor"
+	log "github.com/sirupsen/logrus"
 )
 
 const logo = `
@@ -39,6 +39,7 @@ const zoomUrl = "https://www3.zoom.us/conf/j"
 var colorFlag = flag.Bool("colors", true, "enable or disable colors")
 var token = flag.String("token", "", "zpk token to use")
 var debug = flag.Bool("debug", false, "show error messages")
+var output = flag.String("output", "", "output file for successful finds")
 
 var color aurora.Aurora
 
@@ -49,6 +50,16 @@ func init() {
 
 	if *token == "" {
 		log.Panic("Missing token")
+	}
+
+	if *output != "" {
+		file, err := os.OpenFile(*output, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+
+		if err != nil {
+			log.SetOutput(os.Stdout)
+		} else {
+			log.SetOutput(file)
+		}
 	}
 
 	fmt.Println(color.Green(logo))
@@ -64,7 +75,7 @@ func debugReq(req *http.Request) {
 }
 
 func randomMeetingId() int {
-	min := 80000000000
+	min := 60000000000 // Just to avoid a sea of non existent ids
 	max := 99999999999
 
 	return rand.Intn(max-min+1) + min
@@ -138,21 +149,27 @@ func main() {
 		}
 
 		if err == nil {
-			room := m.GetRoom()
+			r := m.GetRoom()
+			roomId, roomName, user, link := r.GetRoomId(), r.GetRoomName(), r.GetUser(), r.GetLink()
 
-			msg := "Meeting ID: %d.\n" +
+			msg := "\nRoom ID: %d.\n" +
 				"Room: %s.\n" +
 				"Owner: %s.\n" +
-				"Link: %s\n"
+				"Link: %s\n\n"
 
-			entry := fmt.Sprintf(msg,
-				color.Green(room.GetRoomId()),
-				color.Green(room.GetRoomName()),
-				color.Green(room.GetUser()),
-				color.Yellow(room.GetLink()),
+			fmt.Printf(msg,
+				color.Green(roomId),
+				color.Green(roomName),
+				color.Green(user),
+				color.Yellow(link),
 			)
 
-			fmt.Print(entry)
+			log.WithFields(log.Fields{
+				"room_id":   roomId,
+				"room_name": roomName,
+				"owner":     user,
+				"link":      link,
+			}).Info(r.GetPhoneNumbers())
 		}
 
 	}

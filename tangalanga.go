@@ -25,6 +25,10 @@ func WithTransport(transport *http.Transport) Option {
 }
 
 type Tangalanga struct {
+	Found      int
+	Missing    int
+	Suspicious int
+
 	client *http.Client
 }
 
@@ -32,7 +36,7 @@ func (t *Tangalanga) Close() {
 }
 
 func NewTangalanga(opts ...Option) (*Tangalanga, error) {
-	c := &Tangalanga{}
+	c := &Tangalanga{Found: 0}
 
 	for _, opt := range opts {
 		opt(c)
@@ -90,13 +94,27 @@ func (t *Tangalanga) FindMeeting(id int) (*pb.Meeting, error) {
 	missing := m.GetError() != 0
 
 	if missing {
+		t.Missing++
+
 		info := m.GetInformation()
 
 		if m.GetError() == 124 {
 			fmt.Println(color.Red("token expired"))
 		}
 
+		// suspicious not found when there are too many
+		if info == "Meeting not existed." {
+			t.Suspicious++
+		} else {
+			t.Suspicious = 0
+		}
+
 		return nil, fmt.Errorf("%s: %s", color.Blue("zoom"), color.Red(info))
+	} else {
+		// Reset suspicious counter when found
+		t.Suspicious = 0
+		t.Found++
 	}
+
 	return m, nil
 }

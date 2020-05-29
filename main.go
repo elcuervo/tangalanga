@@ -45,17 +45,20 @@ var color aurora.Aurora
 var tangalanga *Tangalanga
 var wg sync.WaitGroup
 var ids chan int
+var start time.Time
 
 func init() {
 	var t *http.Transport
-	ids = make(chan int)
 
 	rand.Seed(time.Now().UnixNano())
-	color = aurora.NewAurora(*colorFlag)
 
-	flag.Parse()
+	color = aurora.NewAurora(*colorFlag)
+	ids = make(chan int)
+	start = time.Now()
 
 	fmt.Println(color.Green(logo))
+
+	flag.Parse()
 
 	if *token == "" {
 		log.Panic("Missing token")
@@ -148,21 +151,27 @@ func pool() {
 
 func main() {
 	c := make(chan os.Signal, 1)
+	done := 0
+
 	signal.Notify(c, syscall.SIGINT, syscall.SIGTERM)
 
 	fmt.Printf("finding disclosed room ids... %s\n", color.Yellow("please wait"))
 
 	go func() {
 		<-c
-		fmt.Println()
-		fmt.Printf("thank you for using %s!\n", color.Green("tangalanga"))
 		tangalanga.Close()
+
+		fmt.Println()
+		fmt.Printf("run for %s\n", color.Blue(time.Since(start)))
+		fmt.Printf("attempted %d times \n", color.Yellow(done))
+		fmt.Printf("found %d meetings. \n", color.Green(tangalanga.Found))
+		fmt.Println()
+		fmt.Printf("💣 with care. thank you for using %s!\n", color.Green("tangalanga"))
+		fmt.Println()
 		os.Exit(0)
 	}()
 
 	go pool()
-
-	done := 0
 
 	for h := 0; ; h++ {
 		for i := 0; i < *rateCount; i++ {
@@ -173,6 +182,13 @@ func main() {
 			if done%200 == 0 && h > 0 {
 				fmt.Printf("%d ids processed\n", color.Red(done)) // Just to show something if no debug
 			}
+		}
+
+		// If there are too many suspicious "not found" try restarting the ...
+		if tangalanga.Suspicious > 1000 {
+			fmt.Println(color.Yellow("more than 1000 suspicious results. changing random"))
+			rand.Seed(time.Now().UnixNano())
+			tangalanga.Suspicious = 0
 		}
 
 		if *debugFlag {

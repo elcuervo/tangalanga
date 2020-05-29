@@ -6,8 +6,10 @@ import (
 	"math/rand"
 	"net/http"
 	"os"
+	"os/signal"
 	"runtime"
 	"sync"
+	"syscall"
 	"time"
 
 	"github.com/logrusorgru/aurora"
@@ -94,7 +96,7 @@ func init() {
 }
 
 func randId() int {
-	min := 9000000000 // Just to avoid a sea of non existent ids
+	min := 50000000000 // Just to avoid a sea of non existent ids
 	max := 99999999999
 
 	return rand.Intn(max-min+1) + min
@@ -149,32 +151,36 @@ func pool() {
 }
 
 func main() {
-	c := make(chan os.Signal, 2)
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, syscall.SIGINT, syscall.SIGTERM)
 
 	fmt.Printf("finding disclosed room ids... %s\n", color.Yellow("please wait"))
 
 	go func() {
 		<-c
+		fmt.Println()
+		fmt.Printf("thank you for using %s!\n", color.Green("tangalanga"))
 		tangalanga.Close()
 		os.Exit(0)
 	}()
 
 	go pool()
 
+	done := 0
+
 	for h := 0; ; h++ {
 		for i := 0; i < *rateCount; i++ {
 			wg.Add(1)
 			ids <- randId()
-		}
+			done++
 
-		block := *rateCount * 50
-
-		if h%block == 0 && h > 0 {
-			fmt.Printf("%d ids processed\n", color.Red(block)) // Just to show something if no debug
+			if done%200 == 0 && h > 0 {
+				fmt.Printf("%d ids processed\n", color.Red(done)) // Just to show something if no debug
+			}
 		}
 
 		if *debugFlag {
-			fmt.Println(color.Yellow("Waiting for queue to drain..."))
+			fmt.Println(color.Yellow("waiting for queue to drain..."))
 		}
 
 		wg.Wait()

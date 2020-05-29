@@ -1,5 +1,3 @@
-// +build !linux
-
 package main
 
 import (
@@ -16,6 +14,14 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+type Option func(*Tangalanga)
+
+func WithTransport(transport *http.Transport) Option {
+	return func(t *Tangalanga) {
+		t.client = &http.Client{Transport: transport}
+	}
+}
+
 type Tangalanga struct {
 	client       *http.Client
 	ErrorCounter int
@@ -24,17 +30,14 @@ type Tangalanga struct {
 func (t *Tangalanga) Close() {
 }
 
-func (t *Tangalanga) NewHTTPClient() {
-	t.client = &http.Client{}
-}
+func NewTangalanga(opts ...Option) (*Tangalanga, error) {
+	c := &Tangalanga{ErrorCounter: 0}
 
-func NewTangalanga() *Tangalanga {
-	t := new(Tangalanga)
-	t.ErrorCounter = 0
+	for _, opt := range opts {
+		opt(c)
+	}
 
-	t.NewHTTPClient()
-
-	return t
+	return c, nil
 }
 
 func (t *Tangalanga) FindMeeting(id int) (*pb.Meeting, error) {
@@ -47,11 +50,21 @@ func (t *Tangalanga) FindMeeting(id int) (*pb.Meeting, error) {
 	req.Header.Add("Cookie", cookie)
 	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 
-	resp, _ := t.client.Do(req)
-	body, _ := ioutil.ReadAll(resp.Body)
+	resp, err := t.client.Do(req)
+
+	if err != nil {
+		fmt.Printf("%s\nerror: %s\n", color.Red("can't connect to Zoom!!"), err.Error())
+		os.Exit(1)
+	}
+
+	body, err := ioutil.ReadAll(resp.Body)
+
+	if err != nil {
+		return nil, nil
+	}
 
 	m := &pb.Meeting{}
-	err := proto.Unmarshal(body, m)
+	err = proto.Unmarshal(body, m)
 	if err != nil {
 		log.Panic("err: ", err)
 	}
@@ -62,7 +75,7 @@ func (t *Tangalanga) FindMeeting(id int) (*pb.Meeting, error) {
 		info := m.GetInformation()
 
 		if m.GetError() == 124 {
-			fmt.Println(color.Red("Token Expired"))
+			fmt.Println(color.Red("token expired"))
 			os.Exit(1)
 		}
 

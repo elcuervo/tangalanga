@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"math/rand"
+	"net/http"
 	"os"
 	"time"
 
@@ -29,8 +30,11 @@ const zoomUrl = "https://www3.zoom.us/conf/j"
 
 var colorFlag = flag.Bool("colors", true, "enable or disable colors")
 var token = flag.String("token", "", "zpk token to use")
-var debug = flag.Bool("debug", false, "show error messages")
-var output = flag.String("output", "", "output file for successful finds")
+var debugFlag = flag.Bool("debug", false, "show error messages")
+var outputFile = flag.String("output", "", "output file for successful finds")
+var torFlag = flag.Bool("tor", false, "connect via tor")
+var proxyAddr = flag.String("proxy", "socks5://127.0.0.1:9150", "socks url to use as proxy")
+var hiddenFlag = flag.Bool("hidden", false, "connect via embedded tor")
 
 var color aurora.Aurora
 var tangalanga *Tangalanga
@@ -46,13 +50,13 @@ func init() {
 		log.Panic("Missing token")
 	}
 
-	if *output != "" {
-		file, err := os.OpenFile(*output, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+	if *outputFile != "" {
+		file, err := os.OpenFile(*outputFile, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
 
 		if err != nil {
 			log.SetOutput(os.Stdout)
 		} else {
-			fmt.Printf("output is %s\n", color.Yellow(*output))
+			fmt.Printf("output is %s\n", color.Yellow(*outputFile))
 			log.SetOutput(file)
 		}
 	}
@@ -66,7 +70,27 @@ func randomMeetingId() int {
 }
 
 func main() {
-	tangalanga = NewTangalanga()
+	var t *http.Transport
+
+	transports := new(Transport)
+
+	switch true {
+	case *hiddenFlag:
+		fmt.Printf("connecting to the TOR network... %s\n", color.Yellow("please wait"))
+		t = transports.InteralTOR()
+
+	case *torFlag:
+		fmt.Printf("connecting to the TOR network via proxy %s...\n", color.Yellow(*proxyAddr))
+		t = transports.Proxy(*proxyAddr)
+
+	default:
+		t = transports.Default()
+	}
+
+	tangalanga, _ := NewTangalanga(
+		WithTransport(t),
+	)
+
 	c := make(chan os.Signal, 2)
 
 	go func() {
@@ -76,6 +100,7 @@ func main() {
 	}()
 
 	fmt.Printf("finding disclosed room ids... %s\n", color.Yellow("please wait"))
+
 	for i := 0; ; i++ {
 		if i%200 == 0 && i > 0 {
 			fmt.Printf("%d ids processed\n", color.Red(i)) // Just to show something if no debug
@@ -85,12 +110,12 @@ func main() {
 
 		m, err := tangalanga.FindMeeting(id)
 
-		if err != nil && *debug {
+		if err != nil && *debugFlag {
 			fmt.Printf("%s\n", err)
 		}
 
 		if tangalanga.ErrorCounter >= 100 {
-			fmt.Println(color.Red("Too many errors, change ip"))
+			fmt.Println(color.Red("too many errors!! try changing ip"))
 		}
 
 		if err == nil {

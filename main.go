@@ -37,7 +37,7 @@ var outputFile = flag.String("output", "", "output file for successful finds")
 var torFlag = flag.Bool("tor", false, "connect via tor")
 var proxyAddr = flag.String("proxy", "socks5://127.0.0.1:9150", "socks url to use as proxy")
 var hiddenFlag = flag.Bool("hidden", false, "connect via embedded tor")
-var rateCount = flag.Int("rate", runtime.NumCPU()/2, "connect via embedded tor")
+var rateCount = flag.Int("rate", runtime.NumCPU(), "worker count. defaults to CPU count")
 
 var color aurora.Aurora
 var tangalanga *Tangalanga
@@ -94,7 +94,7 @@ func init() {
 }
 
 func randId() int {
-	min := 60000000000 // Just to avoid a sea of non existent ids
+	min := 9000000000 // Just to avoid a sea of non existent ids
 	max := 99999999999
 
 	return rand.Intn(max-min+1) + min
@@ -139,14 +139,11 @@ func find(id int) {
 
 func pool() {
 	for i := 0; i < *rateCount; i++ {
-		wg.Add(1)
-
 		go func() {
 			for id := range ids {
 				find(id)
+				wg.Done()
 			}
-
-			wg.Done()
 		}()
 	}
 }
@@ -166,15 +163,18 @@ func main() {
 
 	for h := 0; ; h++ {
 		for i := 0; i < *rateCount; i++ {
+			wg.Add(1)
 			ids <- randId()
 		}
 
+		block := *rateCount * 50
+
+		if h%block == 0 && h > 0 {
+			fmt.Printf("%d ids processed\n", color.Red(block)) // Just to show something if no debug
+		}
+
+		fmt.Println("Waiting")
 		wg.Wait()
 
-		if h%200 == 0 && h > 0 {
-			fmt.Printf("%d ids processed\n", color.Red(h)) // Just to show something if no debug
-		}
 	}
-
-	<-c
 }

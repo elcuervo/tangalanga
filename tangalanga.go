@@ -76,7 +76,7 @@ func (t *Tangalanga) FindMeeting(id int) (*pb.Meeting, error) {
 
 		if m.GetError() == 124 {
 			fmt.Println(color.Red("token expired"))
-			os.Exit(1)
+			//			os.Exit(1)
 		}
 
 		// Not found

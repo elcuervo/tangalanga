@@ -61,7 +61,18 @@ func init() {
 	flag.Parse()
 
 	if *token == "" {
-		log.Panic("Missing token")
+		fmt.Printf("%s is required.\n", color.Red("-token="))
+		fmt.Println()
+
+		info := "token can be found by sniffing the traffic trying to join any meeting\n" +
+			"currently i can't find how the token is generated but any lives for ~24 hours.\n" +
+			"the token can be found as part of the Cookie header.\n" +
+			"there's no need for authentication, anonymous join attempt will generate the cookie."
+
+		fmt.Printf("%s %s\n", color.Red("zpk"), color.Yellow(info))
+		fmt.Println()
+
+		os.Exit(1)
 	}
 
 	if *outputFile != "" {
@@ -179,8 +190,10 @@ func main() {
 			ids <- randId()
 			done++
 
-			if done%200 == 0 && h > 0 {
-				fmt.Printf("%d ids processed\n", color.Red(done)) // Just to show something if no debug
+			if done%200 == 0 && h > 0 && *debugFlag == false {
+				// Just to show something if no debug
+				m := "found %d open meetings after %d attempts. the search continues\n"
+				fmt.Printf(m, color.Green(tangalanga.Found), color.Yellow(done))
 			}
 		}
 

@@ -6,6 +6,8 @@ import (
 	"math/rand"
 	"net/http"
 	"os"
+	"runtime"
+	"sync"
 	"time"
 
 	"github.com/logrusorgru/aurora"
@@ -35,13 +37,20 @@ var outputFile = flag.String("output", "", "output file for successful finds")
 var torFlag = flag.Bool("tor", false, "connect via tor")
 var proxyAddr = flag.String("proxy", "socks5://127.0.0.1:9150", "socks url to use as proxy")
 var hiddenFlag = flag.Bool("hidden", false, "connect via embedded tor")
+var rateCount = flag.Int("rate", runtime.NumCPU()/2, "connect via embedded tor")
 
 var color aurora.Aurora
 var tangalanga *Tangalanga
+var wg sync.WaitGroup
+var ids chan int
 
 func init() {
+	var t *http.Transport
+	ids = make(chan int)
+
 	rand.Seed(time.Now().UnixNano())
 	color = aurora.NewAurora(*colorFlag)
+
 	flag.Parse()
 
 	fmt.Println(color.Green(logo))
@@ -60,17 +69,8 @@ func init() {
 			log.SetOutput(file)
 		}
 	}
-}
 
-func randomMeetingId() int {
-	min := 60000000000 // Just to avoid a sea of non existent ids
-	max := 99999999999
-
-	return rand.Intn(max-min+1) + min
-}
-
-func main() {
-	var t *http.Transport
+	fmt.Printf("worker pool size %d\n", color.Yellow(*rateCount))
 
 	transports := new(Transport)
 
@@ -87,11 +87,74 @@ func main() {
 		t = transports.Default()
 	}
 
-	tangalanga, _ := NewTangalanga(
+	tangalanga, _ = NewTangalanga(
 		WithTransport(t),
 	)
 
+}
+
+func randId() int {
+	min := 60000000000 // Just to avoid a sea of non existent ids
+	max := 99999999999
+
+	return rand.Intn(max-min+1) + min
+}
+
+func find(id int) {
+	m, err := tangalanga.FindMeeting(id)
+
+	if err != nil && *debugFlag {
+		fmt.Printf("%s\n", err)
+	}
+
+	if tangalanga.ErrorCounter >= 100 {
+		fmt.Println(color.Red("too many errors!! try changing ip"))
+	}
+
+	if err == nil {
+		r := m.GetRoom()
+		roomId, roomName, user, link := r.GetRoomId(), r.GetRoomName(), r.GetUser(), r.GetLink()
+
+		msg := "\nRoom ID: %d.\n" +
+			"Room: %s.\n" +
+			"Owner: %s.\n" +
+			"Link: %s\n\n"
+
+		fmt.Printf(msg,
+			color.Green(roomId),
+			color.Green(roomName),
+			color.Green(user),
+			color.Yellow(link),
+		)
+
+		log.WithFields(log.Fields{
+			"room_id":   roomId,
+			"room_name": roomName,
+			"owner":     user,
+			"link":      link,
+		}).Info(r.GetPhoneNumbers())
+	}
+
+}
+
+func pool() {
+	for i := 0; i < *rateCount; i++ {
+		wg.Add(1)
+
+		go func() {
+			for id := range ids {
+				find(id)
+			}
+
+			wg.Done()
+		}()
+	}
+}
+
+func main() {
 	c := make(chan os.Signal, 2)
+
+	fmt.Printf("finding disclosed room ids... %s\n", color.Yellow("please wait"))
 
 	go func() {
 		<-c
@@ -99,48 +162,19 @@ func main() {
 		os.Exit(0)
 	}()
 
-	fmt.Printf("finding disclosed room ids... %s\n", color.Yellow("please wait"))
+	go pool()
 
-	for i := 0; ; i++ {
-		if i%200 == 0 && i > 0 {
-			fmt.Printf("%d ids processed\n", color.Red(i)) // Just to show something if no debug
+	for h := 0; ; h++ {
+		for i := 0; i < *rateCount; i++ {
+			ids <- randId()
 		}
 
-		id := randomMeetingId()
+		wg.Wait()
 
-		m, err := tangalanga.FindMeeting(id)
-
-		if err != nil && *debugFlag {
-			fmt.Printf("%s\n", err)
+		if h%200 == 0 && h > 0 {
+			fmt.Printf("%d ids processed\n", color.Red(h)) // Just to show something if no debug
 		}
-
-		if tangalanga.ErrorCounter >= 100 {
-			fmt.Println(color.Red("too many errors!! try changing ip"))
-		}
-
-		if err == nil {
-			r := m.GetRoom()
-			roomId, roomName, user, link := r.GetRoomId(), r.GetRoomName(), r.GetUser(), r.GetLink()
-
-			msg := "\nRoom ID: %d.\n" +
-				"Room: %s.\n" +
-				"Owner: %s.\n" +
-				"Link: %s\n\n"
-
-			fmt.Printf(msg,
-				color.Green(roomId),
-				color.Green(roomName),
-				color.Green(user),
-				color.Yellow(link),
-			)
-
-			log.WithFields(log.Fields{
-				"room_id":   roomId,
-				"room_name": roomName,
-				"owner":     user,
-				"link":      link,
-			}).Info(r.GetPhoneNumbers())
-		}
-
 	}
+
+	<-c
 }

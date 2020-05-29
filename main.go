@@ -173,7 +173,10 @@ func main() {
 			fmt.Printf("%d ids processed\n", color.Red(block)) // Just to show something if no debug
 		}
 
-		fmt.Println("Waiting")
+		if *debugFlag {
+			fmt.Println(color.Yellow("Waiting for queue to drain..."))
+		}
+
 		wg.Wait()
 
 	}

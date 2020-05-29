@@ -25,15 +25,15 @@ func WithTransport(transport *http.Transport) Option {
 }
 
 type Tangalanga struct {
-	client       *http.Client
-	ErrorCounter int
+	client *http.Client
+	Errors int
 }
 
 func (t *Tangalanga) Close() {
 }
 
 func NewTangalanga(opts ...Option) (*Tangalanga, error) {
-	c := &Tangalanga{ErrorCounter: 0}
+	c := &Tangalanga{Errors: 0}
 
 	for _, opt := range opts {
 		opt(c)
@@ -99,12 +99,11 @@ func (t *Tangalanga) FindMeeting(id int) (*pb.Meeting, error) {
 
 		// Not found
 		if info == "Meeting not existed." {
-			t.ErrorCounter++
-		} else {
-			t.ErrorCounter = 0
+			t.Errors++
 		}
-
 		return nil, fmt.Errorf("%s: %s", color.Blue("zoom"), color.Red(info))
+	} else {
+		t.Errors = 0
 	}
 
 	return m, nil

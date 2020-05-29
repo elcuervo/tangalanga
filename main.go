@@ -109,7 +109,7 @@ func find(id int) {
 		fmt.Printf("%s\n", err)
 	}
 
-	if tangalanga.ErrorCounter >= 100 {
+	if tangalanga.Errors >= 100 {
 		fmt.Println(color.Red("too many errors!! try changing ip"))
 	}
 

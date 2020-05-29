@@ -39,7 +39,7 @@ var outputFile = flag.String("output", "", "output file for successful finds")
 var torFlag = flag.Bool("tor", false, "connect via tor")
 var proxyAddr = flag.String("proxy", "socks5://127.0.0.1:9150", "socks url to use as proxy")
 var hiddenFlag = flag.Bool("hidden", false, "connect via embedded tor")
-var rateCount = flag.Int("rate", runtime.NumCPU()/4, "worker count. defaults to CPU count")
+var rateCount = flag.Int("rate", runtime.NumCPU(), "worker count. defaults to CPU count")
 
 var color aurora.Aurora
 var tangalanga *Tangalanga
@@ -107,10 +107,6 @@ func find(id int) {
 
 	if err != nil && *debugFlag {
 		fmt.Printf("%s\n", err)
-	}
-
-	if tangalanga.Errors >= 100 {
-		fmt.Println(color.Red("too many errors!! try changing ip"))
 	}
 
 	if err == nil {

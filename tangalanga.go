@@ -26,14 +26,13 @@ func WithTransport(transport *http.Transport) Option {
 
 type Tangalanga struct {
 	client *http.Client
-	Errors int
 }
 
 func (t *Tangalanga) Close() {
 }
 
 func NewTangalanga(opts ...Option) (*Tangalanga, error) {
-	c := &Tangalanga{Errors: 0}
+	c := &Tangalanga{}
 
 	for _, opt := range opts {
 		opt(c)
@@ -97,14 +96,7 @@ func (t *Tangalanga) FindMeeting(id int) (*pb.Meeting, error) {
 			fmt.Println(color.Red("token expired"))
 		}
 
-		// Not found
-		if info == "Meeting not existed." {
-			t.Errors++
-		}
 		return nil, fmt.Errorf("%s: %s", color.Blue("zoom"), color.Red(info))
-	} else {
-		t.Errors = 0
 	}
-
 	return m, nil
 }

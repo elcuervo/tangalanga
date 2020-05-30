@@ -12,9 +12,10 @@ This are all the possible flags:
 
 ```bash
 tangalanga \
-    -token=user-token \   # [required]         user token to use
+    -token=user-token \   # [default: env TOKEN]  user token to use.
 
     -colors=false \       # [default: true]    enable/disable colors
+    -censor=true \        # [default: false]   censors output
     -output=history \     # [default: stdout]  write found meetings to file
     -debug=true \         # [default: false]   show all the attmpts
     -tor=true \           # [default: false]   enable tor connection (will use default socks proxy)

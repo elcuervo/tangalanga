@@ -8,6 +8,8 @@ import (
 	"os"
 	"os/signal"
 	"runtime"
+	"strconv"
+	"strings"
 	"sync"
 	"syscall"
 	"time"
@@ -34,8 +36,9 @@ const zoomUrl = "https://www3.zoom.us/conf/j"
 
 var version string
 
-var token = flag.String("token", "", "zpk token to use")
+var token = flag.String("token", os.Getenv("TOKEN"), "zpk token to use")
 var colorFlag = flag.Bool("colors", true, "enable or disable colors")
+var censorFlag = flag.Bool("censor", false, "enable or disable stdout censorship")
 var outputFile = flag.String("output", "", "output file for successful finds")
 var debugFlag = flag.Bool("debug", false, "show error messages")
 var torFlag = flag.Bool("tor", false, "connect via tor")
@@ -120,6 +123,17 @@ func randId() int {
 	return rand.Intn(max-min+1) + min
 }
 
+func hide(msg string) string {
+	return censor(msg, 3)
+}
+
+func censor(msg string, n int) string {
+	text := []rune(msg)
+	x := strings.Repeat("#", len(msg)-n)
+
+	return string(text[0:n]) + x
+}
+
 func find(id int) {
 	m, err := tangalanga.FindMeeting(id)
 
@@ -129,12 +143,23 @@ func find(id int) {
 
 	if err == nil {
 		r := m.GetRoom()
-		roomId, roomName, user, link := r.GetRoomId(), r.GetRoomName(), r.GetUser(), r.GetLink()
 
-		msg := "\nRoom ID: %d.\n" +
+		roomId := strconv.FormatUint(r.GetRoomId(), 10)
+		roomName := r.GetRoomName()
+		user := r.GetUser()
+		link := r.GetLink()
+
+		msg := "\nRoom ID: %s.\n" +
 			"Room: %s.\n" +
 			"Owner: %s.\n" +
 			"Link: %s\n\n"
+
+		if *censorFlag {
+			roomId = hide(roomId)
+			roomName = hide(roomName)
+			user = hide(user)
+			link = censor(link, 10)
+		}
 
 		fmt.Printf(msg,
 			color.Green(roomId),
@@ -143,12 +168,14 @@ func find(id int) {
 			color.Yellow(link),
 		)
 
-		log.WithFields(log.Fields{
-			"room_id":   roomId,
-			"room_name": roomName,
-			"owner":     user,
-			"link":      link,
-		}).Info(r.GetPhoneNumbers())
+		if !*censorFlag || *outputFile != "" {
+			log.WithFields(log.Fields{
+				"room_id":   roomId,
+				"room_name": roomName,
+				"owner":     user,
+				"link":      link,
+			}).Info(r.GetPhoneNumbers())
+		}
 	}
 
 }

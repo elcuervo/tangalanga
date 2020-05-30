@@ -4,7 +4,7 @@ Zoom Conference scanner.
 
 This scanner will check for a random meeting id and return information if available.
 
-![](http://share.elcuervo.net/tangalanga-find-02.png)
+![](http://share.elcuervo.net/screenshot_2020-05-29_213922.png)
 
 ## Usage
 

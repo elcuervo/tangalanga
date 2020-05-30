@@ -12,10 +12,16 @@ This are all the possible flags:
 
 ```bash
 tangalanga \
-    -token=user-token \ # User token to user
-    -output=log/history \ # Write founds on file
-    -debug=true \ # Show not founds too
-    -tor=true # Enable tor connection (not available on windows and osx)
+    -token=user-token \   # [required]         user token to use
+
+    -colors=false \       # [default: true]    enable/disable colors
+    -output=history \     # [default: stdout]  write found meetings to file
+    -debug=true \         # [default: false]   show all the attmpts
+    -tor=true \           # [default: false]   enable tor connection (will use default socks proxy)
+    -hidden=true \        # [default: false]   enable embedded tor connection (only linux)
+    -rate=7 \             # [default: ncpu]    overwrite the default worker pool
+
+    -proxy=socks5://... \ # [default: socks5://127.0.0.1:9150]   proxy url to use
 ```
 
 ## Tokens

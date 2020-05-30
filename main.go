@@ -32,10 +32,10 @@ const logo = `
 
 const zoomUrl = "https://www3.zoom.us/conf/j"
 
-var colorFlag = flag.Bool("colors", true, "enable or disable colors")
 var token = flag.String("token", "", "zpk token to use")
-var debugFlag = flag.Bool("debug", false, "show error messages")
+var colorFlag = flag.Bool("colors", true, "enable or disable colors")
 var outputFile = flag.String("output", "", "output file for successful finds")
+var debugFlag = flag.Bool("debug", false, "show error messages")
 var torFlag = flag.Bool("tor", false, "connect via tor")
 var proxyAddr = flag.String("proxy", "socks5://127.0.0.1:9150", "socks url to use as proxy")
 var hiddenFlag = flag.Bool("hidden", false, "connect via embedded tor")

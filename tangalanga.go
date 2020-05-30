@@ -29,6 +29,8 @@ type Tangalanga struct {
 	Missing    int
 	Suspicious int
 
+	ExpiredToken bool
+
 	client *http.Client
 }
 
@@ -36,7 +38,13 @@ func (t *Tangalanga) Close() {
 }
 
 func NewTangalanga(opts ...Option) (*Tangalanga, error) {
-	c := &Tangalanga{Found: 0}
+	c := &Tangalanga{
+		Found:      0,
+		Missing:    0,
+		Suspicious: 0,
+
+		ExpiredToken: false,
+	}
 
 	for _, opt := range opts {
 		opt(c)
@@ -99,7 +107,7 @@ func (t *Tangalanga) FindMeeting(id int) (*pb.Meeting, error) {
 		info := m.GetInformation()
 
 		if m.GetError() == 124 {
-			fmt.Println(color.Red("token expired"))
+			t.ExpiredToken = true
 		}
 
 		// suspicious not found when there are too many

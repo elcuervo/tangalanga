@@ -229,6 +229,13 @@ func main() {
 			}
 		}
 
+		if tangalanga.ExpiredToken {
+			m := "the %s expired, you need to sniff join traffic for a new one\n"
+			fmt.Printf(m, color.Red("token"))
+			fmt.Println()
+			c <- syscall.SIGINT
+		}
+
 		// If there are too many suspicious "not found" try restarting the ...
 		if tangalanga.Suspicious > 1000 {
 			fmt.Println(color.Yellow("more than 1000 suspicious results. changing random"))

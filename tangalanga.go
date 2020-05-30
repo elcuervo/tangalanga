@@ -69,6 +69,7 @@ func (t *Tangalanga) FindMeeting(id int) (*pb.Meeting, error) {
 	cookie := fmt.Sprintf("zpk=%s", *token)
 
 	req.Header.Add("Cookie", cookie)
+	req.Header.Add("ZM-CAP", "2535978022733895607,32676")
 	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 
 	resp, err := t.client.Do(req)

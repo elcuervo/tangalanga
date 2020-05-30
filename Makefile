@@ -4,6 +4,7 @@ WINDOWS=$(EXECUTABLE)_windows_amd64.exe
 LINUX=$(EXECUTABLE)_linux_amd64
 DARWIN=$(EXECUTABLE)_darwin_amd64
 VERSION=$(shell git describe --tags --always --long --dirty)
+LDFLAGS=-s -w -X main.version=$(VERSION) -X main.baked=$(TOKEN)
 
 .PHONY: all clean proto
 
@@ -15,6 +16,9 @@ linux: $(LINUX)
 
 darwin: $(DARWIN)
 
+no:
+	unset -v TOKEN
+
 proto:
 	protoc --go_out=proto meeting.proto
 
@@ -22,12 +26,12 @@ build: windows linux darwin
 	@echo version: $(VERSION)
 
 $(WINDOWS):
-	env GOOS=windows GOARCH=amd64 go build -o $(BUILD_PATH)/$(WINDOWS) -ldflags="-s -w -X main.version=$(VERSION)"  .
+	env GOOS=windows GOARCH=amd64 go build -o $(BUILD_PATH)/$(WINDOWS) -ldflags="$(LDFLAGS)" .
 	@chmod +x $(BUILD_PATH)/$(WINDOWS)
 	zip -r $(BUILD_PATH)/$(WINDOWS).zip $(BUILD_PATH)/$(WINDOWS)
 
 $(LINUX):
-	env GOOS=linux GOARCH=amd64 go build -o $(BUILD_PATH)/$(LINUX) -ldflags="-s -w -X main.version=$(VERSION)"  ./
+	env GOOS=linux GOARCH=amd64 go build -o $(BUILD_PATH)/$(LINUX) -ldflags="$(LDFLAGS)" ./
 	@chmod +x $(BUILD_PATH)/$(LINUX)
 	tar cfz $(BUILD_PATH)/$(LINUX).tgz $(BUILD_PATH)/$(LINUX)
 

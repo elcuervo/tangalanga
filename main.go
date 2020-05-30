@@ -34,9 +34,17 @@ const logo = `
 
 const zoomUrl = "https://www3.zoom.us/conf/j"
 
+// added at compile time
 var version string
+var baked string
 
-var token = flag.String("token", os.Getenv("TOKEN"), "zpk token to use")
+var color aurora.Aurora
+var tangalanga *Tangalanga
+var wg sync.WaitGroup
+var ids chan int
+var start time.Time
+
+var token = flag.String("token", availableToken(), "zpk token to use")
 var colorFlag = flag.Bool("colors", true, "enable or disable colors")
 var censorFlag = flag.Bool("censor", false, "enable or disable stdout censorship")
 var outputFile = flag.String("output", "", "output file for successful finds")
@@ -45,12 +53,6 @@ var torFlag = flag.Bool("tor", false, "connect via tor")
 var proxyAddr = flag.String("proxy", "socks5://127.0.0.1:9150", "socks url to use as proxy")
 var hiddenFlag = flag.Bool("hidden", false, "connect via embedded tor")
 var rateCount = flag.Int("rate", runtime.NumCPU(), "worker count. defaults to CPU count")
-
-var color aurora.Aurora
-var tangalanga *Tangalanga
-var wg sync.WaitGroup
-var ids chan int
-var start time.Time
 
 func init() {
 	var t *http.Transport
@@ -67,6 +69,9 @@ func init() {
 
 	if *token == "" {
 		fmt.Printf("%s is required.\n", color.Red("-token="))
+		fmt.Println()
+
+		fmt.Printf("%s can also be defined in the ENV.\n", color.Red("TOKEN"))
 		fmt.Println()
 
 		info := "token can be found by sniffing the traffic trying to join any meeting\n" +
@@ -114,6 +119,17 @@ func init() {
 		WithTransport(t),
 	)
 
+}
+
+func availableToken() string {
+	switch {
+	case os.Getenv("TOKEN") != "":
+		return os.Getenv("TOKEN")
+	case baked != "":
+		return baked
+	default:
+		return ""
+	}
 }
 
 func randId() int {
@@ -232,7 +248,9 @@ func main() {
 		if tangalanga.ExpiredToken {
 			m := "the %s expired, you need to sniff join traffic for a new one\n"
 			fmt.Printf(m, color.Red("token"))
-			fmt.Println()
+
+			m = "you need to pass %s with the new token\n"
+			fmt.Printf(m, color.Red("-token="))
 			c <- syscall.SIGINT
 		}
 

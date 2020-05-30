@@ -154,6 +154,15 @@ func find(id int) {
 			"Owner: %s.\n" +
 			"Link: %s\n\n"
 
+		if !*censorFlag || *outputFile != "" {
+			log.WithFields(log.Fields{
+				"room_id":   roomId,
+				"room_name": roomName,
+				"owner":     user,
+				"link":      link,
+			}).Info(r.GetPhoneNumbers())
+		}
+
 		if *censorFlag {
 			roomId = hide(roomId)
 			roomName = hide(roomName)
@@ -167,15 +176,6 @@ func find(id int) {
 			color.Green(user),
 			color.Yellow(link),
 		)
-
-		if !*censorFlag || *outputFile != "" {
-			log.WithFields(log.Fields{
-				"room_id":   roomId,
-				"room_name": roomName,
-				"owner":     user,
-				"link":      link,
-			}).Info(r.GetPhoneNumbers())
-		}
 	}
 
 }

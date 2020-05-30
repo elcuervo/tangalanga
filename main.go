@@ -32,6 +32,8 @@ const logo = `
 
 const zoomUrl = "https://www3.zoom.us/conf/j"
 
+var version string
+
 var token = flag.String("token", "", "zpk token to use")
 var colorFlag = flag.Bool("colors", true, "enable or disable colors")
 var outputFile = flag.String("output", "", "output file for successful finds")
@@ -74,6 +76,8 @@ func init() {
 
 		os.Exit(1)
 	}
+
+	fmt.Printf("build is %s\n", color.Yellow(version))
 
 	if *outputFile != "" {
 		file, err := os.OpenFile(*outputFile, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
@@ -166,7 +170,8 @@ func main() {
 
 	signal.Notify(c, syscall.SIGINT, syscall.SIGTERM)
 
-	fmt.Printf("finding disclosed room ids... %s\n", color.Yellow("please wait"))
+	fmt.Printf("searching for open meetings... %s\n", color.Yellow("please wait"))
+	fmt.Println()
 
 	go func() {
 		<-c

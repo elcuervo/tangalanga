@@ -6,6 +6,16 @@ This scanner will check for a random meeting id and return information if availa
 
 ![](http://share.elcuervo.net/screenshot_2020-05-29_213922.png)
 
+## Install
+
+First try to see if there's any prebaked version for the date: https://github.com/elcuervo/tangalanga/releases.
+
+This versions already have a token ready to use.
+
+Either way you can find the Windows, Linux and Mac version on Releases https://github.com/elcuervo/tangalanga/releases.
+
+Download, uncompress and enjoy.
+
 ## Usage
 
 This are all the possible flags:
@@ -30,6 +40,12 @@ tangalanga \
 Unfortunately I couldn't find the way the tokens are being generated but the core concept is that
 the `zpk` cookie key is being sent during a Join will be usable for ~24 hours before expiring. This
 makes trivial to join several known meetings, gether some tokens and then use them for the scans.
+
+Tokens can be sniffed after a join attempt to a meeting.
+This means that to "fish" a token you'll need a setup that can sniff traffic and also spoof
+certificates.
+
+Using Wireshark, Charles or any other of the ssl-proxying-capable tools out there will do the trick.
 
 ## TOR (only linux)
 
